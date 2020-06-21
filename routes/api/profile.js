@@ -7,6 +7,7 @@ const { check, validationResult } = require('express-validator');
 
 const Profile = require('../../models/Profile');
 const User = require('../../models/User');
+const Post = require('../../models/Post');
 
 // @route   GET api/profile/me
 // @desc    Get current users profile
@@ -35,7 +36,10 @@ router.post(
     '/',
     [
         auth,
-        [check('status', 'Status is required').not().isEmpty(), check('skills', 'Skills is required').not().isEmpty()],
+        [
+            check('status', 'Status is required').not().isEmpty(),
+            check('skills', 'Skills is required').not().isEmpty(),
+        ],
     ],
     async (req, res) => {
         const errors = validationResult(req);
@@ -87,7 +91,11 @@ router.post(
 
             if (profile) {
                 // Update
-                profile = await Profile.findOneAndUpdate({ user: req.user.id }, { $set: profileFields }, { new: true });
+                profile = await Profile.findOneAndUpdate(
+                    { user: req.user.id },
+                    { $set: profileFields },
+                    { new: true },
+                );
                 return res.json(profile);
             }
 
@@ -125,7 +133,10 @@ router.get('/', async (req, res) => {
 
 router.get('/user/:user_id', async (req, res) => {
     try {
-        const profile = await Profile.findOne({ user: req.params.user_id }).populate('user', ['name', 'avatar']);
+        const profile = await Profile.findOne({ user: req.params.user_id }).populate('user', [
+            'name',
+            'avatar',
+        ]);
 
         if (!profile) {
             return res.status(400).json({ msg: 'Profile not found' });
@@ -147,7 +158,8 @@ router.get('/user/:user_id', async (req, res) => {
 
 router.delete('/', auth, async (req, res) => {
     try {
-        // @TODO: remove users posts
+        // remove users posts
+        await Post.deleteMany({ user: req.user.id });
 
         // Remove profile
         await Profile.findOneAndRemove({ user: req.user.id });
@@ -306,9 +318,9 @@ router.get('/github/:username', (req, res) => {
         const options = {
             uri: `https://api.github.com/users/${
                 req.params.username
-            }/repos?per_page=5&sort=created:asc&client_id=${config.get('githubClientId')}&client_secret=${config.get(
-                'githubSecret',
-            )}`,
+            }/repos?per_page=5&sort=created:asc&client_id=${config.get(
+                'githubClientId',
+            )}&client_secret=${config.get('githubSecret')}`,
             method: 'GET',
             headers: { 'user-agent': 'node.js' },
         };
