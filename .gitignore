@@ -33,3 +33,5 @@ out/
 *.iws
 
 package-lock.json
+
+config/default.json
